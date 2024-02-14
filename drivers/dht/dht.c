@@ -29,7 +29,10 @@
 #include "py/runtime.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
-#include "extmod/machine_pulse.h"
+
+#if MICROPY_PY_MACHINE_PULSE
+
+#include "extmod/modmachine.h"
 #include "drivers/dht/dht.h"
 
 // Allow the open-drain-high call to be DHT specific for ports that need it
@@ -92,3 +95,5 @@ timeout:
     mp_raise_OSError(MP_ETIMEDOUT);
 }
 MP_DEFINE_CONST_FUN_OBJ_2(dht_readinto_obj, dht_readinto);
+
+#endif // MICROPY_PY_MACHINE_PULSE

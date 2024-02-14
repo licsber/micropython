@@ -24,11 +24,12 @@
  * THE SOFTWARE.
  */
 
+#include <string.h>
 #include "py/runtime.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "spi.h"
-#include "extmod/machine_spi.h"
+#include "extmod/modmachine.h"
 
 // Possible DMA configurations for SPI buses:
 // SPI1_TX: DMA2_Stream3.CHANNEL_3 or DMA2_Stream5.CHANNEL_3
@@ -341,7 +342,7 @@ void spi_set_params(const spi_t *spi_obj, uint32_t prescale, int32_t baudrate,
 int spi_init(const spi_t *self, bool enable_nss_pin) {
     SPI_HandleTypeDef *spi = self->spi;
     uint32_t irqn = 0;
-    const pin_obj_t *pins[4] = { NULL, NULL, NULL, NULL };
+    const machine_pin_obj_t *pins[4] = { NULL, NULL, NULL, NULL };
 
     if (0) {
     #if defined(MICROPY_HW_SPI1_SCK)
@@ -734,6 +735,8 @@ void spi_print(const mp_print_t *print, const spi_t *spi_obj, bool legacy) {
     mp_print_str(print, ")");
 }
 
+#if MICROPY_PY_MACHINE_SPI
+
 const spi_t *spi_from_mp_obj(mp_obj_t o) {
     if (mp_obj_is_type(o, &pyb_spi_type)) {
         pyb_spi_obj_t *self = MP_OBJ_TO_PTR(o);
@@ -759,6 +762,8 @@ mp_obj_base_t *mp_hal_get_spi_obj(mp_obj_t o) {
         mp_raise_TypeError(MP_ERROR_TEXT("expecting an SPI object"));
     }
 }
+
+#endif
 
 /******************************************************************************/
 // Implementation of low-level SPI C protocol

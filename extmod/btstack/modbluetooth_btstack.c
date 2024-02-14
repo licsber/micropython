@@ -462,8 +462,9 @@ STATIC void btstack_packet_handler_read(uint8_t packet_type, uint16_t channel, u
         if (!conn) {
             return;
         }
-        mp_bluetooth_gattc_on_read_write_status(MP_BLUETOOTH_IRQ_GATTC_READ_DONE, conn_handle, conn->pending_value_handle, status);
+        uint16_t value_handle = conn->pending_value_handle;
         conn->pending_value_handle = 0xffff;
+        mp_bluetooth_gattc_on_read_write_status(MP_BLUETOOTH_IRQ_GATTC_READ_DONE, conn_handle, value_handle, status);
     } else if (event_type == GATT_EVENT_CHARACTERISTIC_VALUE_QUERY_RESULT) {
         DEBUG_printf("  --> gatt characteristic value query result\n");
         uint16_t conn_handle = gatt_event_characteristic_value_query_result_get_handle(packet);
@@ -490,11 +491,12 @@ STATIC void btstack_packet_handler_write_with_response(uint8_t packet_type, uint
         if (!conn) {
             return;
         }
-        mp_bluetooth_gattc_on_read_write_status(MP_BLUETOOTH_IRQ_GATTC_WRITE_DONE, conn_handle, conn->pending_value_handle, status);
+        uint16_t value_handle = conn->pending_value_handle;
         conn->pending_value_handle = 0xffff;
         m_del(uint8_t, conn->pending_write_value, conn->pending_write_value_len);
         conn->pending_write_value = NULL;
         conn->pending_write_value_len = 0;
+        mp_bluetooth_gattc_on_read_write_status(MP_BLUETOOTH_IRQ_GATTC_WRITE_DONE, conn_handle, value_handle, status);
     }
 }
 #endif // MICROPY_PY_BLUETOOTH_ENABLE_GATT_CLIENT
@@ -552,7 +554,7 @@ STATIC void set_random_address(void) {
         volatile bool ready = false;
         btstack_crypto_random_generate(&sm_crypto_random_request, static_addr, 6, &btstack_static_address_ready, (void *)&ready);
         while (!ready) {
-            MICROPY_EVENT_POLL_HOOK
+            mp_event_wait_indefinite();
         }
 
         #endif // MICROPY_BLUETOOTH_USE_MP_HAL_GET_MAC_STATIC_ADDRESS
@@ -574,7 +576,7 @@ STATIC void set_random_address(void) {
             break;
         }
 
-        MICROPY_EVENT_POLL_HOOK
+        mp_event_wait_indefinite();
     }
     DEBUG_printf("set_random_address: Address loaded by controller\n");
 }
@@ -654,7 +656,7 @@ int mp_bluetooth_init(void) {
     // Either the HCI event will set state to ACTIVE, or the timeout will set it to TIMEOUT.
     mp_bluetooth_btstack_port_start();
     while (mp_bluetooth_btstack_state == MP_BLUETOOTH_BTSTACK_STATE_STARTING) {
-        MICROPY_EVENT_POLL_HOOK
+        mp_event_wait_indefinite();
     }
     btstack_run_loop_remove_timer(&btstack_init_deinit_timeout);
 
@@ -727,7 +729,7 @@ void mp_bluetooth_deinit(void) {
     // either timeout or clean shutdown.
     mp_bluetooth_btstack_port_deinit();
     while (mp_bluetooth_btstack_state == MP_BLUETOOTH_BTSTACK_STATE_ACTIVE) {
-        MICROPY_EVENT_POLL_HOOK
+        mp_event_wait_indefinite();
     }
     btstack_run_loop_remove_timer(&btstack_init_deinit_timeout);
 
